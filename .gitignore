@@ -1,0 +1,5 @@
+node_modules/
+.env
+proxy-list.txt
+*.log
+.DS_Store

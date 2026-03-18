@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SkinPulse — CS2 Price Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f3ef;--bg2:#fff;--bg3:#edeae4;
+  --s:#fff;--s2:#faf9f7;
+  --b:#e2ddd6;--b2:#ccc8c0;
+  --t:#1a1814;--t2:#5c5750;--t3:#9c968e;
+  --ac:#e8530a;
+  --up:#1a9e5a;--upbg:#e8f7ef;
+  --dn:#d63b3b;--dnbg:#fdeaea;
+  --neu:#8b8480;--neubg:#f0ede8;
+  --gold:#c9922a;--goldbg:#fef4e3;
+  --sh:0 1px 3px rgba(26,24,20,.06),0 4px 16px rgba(26,24,20,.04);
+  --shlg:0 8px 32px rgba(26,24,20,.12);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t);font-size:14px}
+
+/* HEADER */
+header{background:var(--bg2);border-bottom:1px solid var(--b);position:sticky;top:0;z-index:100}
+.hi{max-width:1700px;margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;gap:28px}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:21px;color:var(--t);letter-spacing:-.5px;display:flex;align-items:center;gap:7px;text-decoration:none}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--ac);display:inline-block}
+.hnav{display:flex;gap:3px;flex:1}
+.nb{padding:6px 13px;border-radius:8px;border:none;background:transparent;color:var(--t2);font-family:'DM Sans',sans-serif;font-size:13.5px;font-weight:500;cursor:pointer;transition:all .15s}
+.nb:hover{background:var(--bg3);color:var(--t)}
+.nb.active{background:var(--ac);color:#fff}
+.hr{display:flex;align-items:center;gap:10px;margin-left:auto}
+.live-b{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:500}
+.live-b.ok{background:var(--upbg);color:var(--up)}
+.live-b.conn{background:#fff7e6;color:#b45309}
+.live-b.err{background:var(--dnbg);color:var(--dn)}
+.ldot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.ldot.ok{animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+
+/* LAYOUT */
+.layout{max-width:1700px;margin:0 auto;padding:20px 24px;display:flex;gap:18px}
+
+/* SIDEBAR */
+.sidebar{width:232px;flex-shrink:0;display:flex;flex-direction:column;gap:14px}
+.sc{background:var(--s);border:1px solid var(--b);border-radius:14px;padding:15px;box-shadow:var(--sh)}
+.stitle{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--t3);margin-bottom:11px}
+.fg{margin-bottom:12px}
+.fl{font-size:12px;font-weight:500;color:var(--t2);margin-bottom:5px;display:block}
+.fsel{width:100%;padding:7px 10px;border:1px solid var(--b);border-radius:8px;background:var(--bg);color:var(--t);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;outline:none;transition:border-color .15s}
+.fsel:focus{border-color:var(--ac)}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{padding:4px 9px;border-radius:6px;background:var(--bg3);color:var(--t2);font-size:12px;cursor:pointer;border:1px solid transparent;transition:all .15s;font-weight:500}
+.chip:hover{border-color:var(--b2);color:var(--t)}
+.chip.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+
+/* Market selector */
+.mkt-list{display:flex;flex-direction:column;gap:3px}
+.mkt-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;transition:background .12s;user-select:none}
+.mkt-row:hover{background:var(--bg3)}
+.mkt-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.mkt-name{font-size:13px;font-weight:500;color:var(--t2);flex:1}
+.mkt-count{font-size:11px;color:var(--t3)}
+.mkt-cb{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--b2);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.mkt-cb.on{background:var(--ac);border-color:var(--ac)}
+.mkt-cb.on::after{content:'✓';color:#fff;font-size:10px;font-weight:700}
+
+/* Stats sidebar */
+.sr{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--bg3)}
+.sr:last-child{border-bottom:none}
+.sk{font-size:12px;color:var(--t3)}
+.sv{font-size:13px;font-weight:600;color:var(--t)}
+.sv.up{color:var(--up)}
+.sv.dn{color:var(--dn)}
+
+/* MAIN */
+.main{flex:1;min-width:0}
+.tcards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.tc{background:var(--s);border:1px solid var(--b);border-radius:14px;padding:15px 17px;box-shadow:var(--sh);position:relative;overflow:hidden}
+.tc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.tc.or::before{background:var(--ac)}
+.tc.gr::before{background:var(--up)}
+.tc.rd::before{background:var(--dn)}
+.tc.gd::before{background:var(--gold)}
+.tclbl{font-size:11.5px;color:var(--t3);font-weight:500;margin-bottom:5px}
+.tcval{font-family:'Syne',sans-serif;font-size:25px;font-weight:700;color:var(--t);line-height:1;margin-bottom:3px}
+.tcsub{font-size:12px;color:var(--t3)}
+.sub-up{color:var(--up);font-weight:600}
+.sub-dn{color:var(--dn);font-weight:600}
+
+/* TOOLBAR */
+.tb{display:flex;align-items:center;gap:9px;margin-bottom:11px;background:var(--s);border:1px solid var(--b);border-radius:14px;padding:9px 13px;box-shadow:var(--sh);flex-wrap:wrap}
+.sw{position:relative;flex:1;min-width:180px;max-width:300px}
+.sw svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--t3);pointer-events:none}
+.si{width:100%;padding:7px 9px 7px 32px;border:1px solid var(--b);border-radius:9px;background:var(--bg);font-family:'DM Sans',sans-serif;font-size:13.5px;color:var(--t);outline:none;transition:border-color .15s}
+.si:focus{border-color:var(--ac)}
+.si::placeholder{color:var(--t3)}
+.tsep{width:1px;height:24px;background:var(--b)}
+.tbtn{padding:6px 12px;border-radius:8px;border:1px solid var(--b);background:var(--bg2);color:var(--t2);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all .15s;white-space:nowrap}
+.tbtn:hover{border-color:var(--b2);color:var(--t);background:var(--bg3)}
+.tbtn.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.rc{margin-left:auto;font-size:12.5px;color:var(--t3);font-weight:500}
+
+/* TABLE */
+.tw{background:var(--s);border:1px solid var(--b);border-radius:14px;box-shadow:var(--sh);overflow:hidden}
+.ts{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead{background:var(--s2);border-bottom:1px solid var(--b)}
+th{padding:10px 13px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--t3);white-space:nowrap;cursor:pointer;user-select:none}
+th:hover{color:var(--t2)}
+th.r,td.r{text-align:right}
+th.c,td.c{text-align:center}
+tbody tr{border-bottom:1px solid var(--b);transition:background .1s;cursor:pointer}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:#faf9f7}
+td{padding:9px 13px;vertical-align:middle;font-size:13.5px;white-space:nowrap}
+
+.skc{display:flex;align-items:center;gap:9px;min-width:220px}
+.ski{width:52px;height:40px;border-radius:6px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;overflow:hidden}
+.ski img{width:100%;height:100%;object-fit:contain}
+.skname{font-weight:600;color:var(--t);font-size:13.5px;line-height:1.3}
+.skwear{font-size:11.5px;color:var(--t3);font-weight:500;margin-top:1px}
+.rdot{width:5px;height:22px;border-radius:3px;flex-shrink:0}
+.pr{font-weight:600;font-variant-numeric:tabular-nums}
+.pr.best{color:var(--up)}
+.pr.worst{color:var(--dn)}
+.badge{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:6px;font-size:12px;font-weight:700}
+.badge.up{background:var(--upbg);color:var(--up)}
+.badge.dn{background:var(--dnbg);color:var(--dn)}
+.badge.neu{background:var(--neubg);color:var(--neu)}
+.vbar{width:70px}
+.vval{font-size:12px;color:var(--t2);font-weight:500}
+.vb{height:4px;border-radius:2px;background:var(--bg3);overflow:hidden;margin-top:2px}
+.vbf{height:100%;border-radius:2px;background:var(--ac)}
+.bm{width:27px;height:27px;border-radius:6px;border:1px solid var(--b);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t3);transition:all .15s;font-size:13px}
+.bm:hover,.bm.on{border-color:var(--gold);color:var(--gold);background:var(--goldbg)}
+
+/* Footer */
+.tfoot{display:flex;align-items:center;justify-content:space-between;padding:11px 15px;border-top:1px solid var(--b);background:var(--s2)}
+.pi{font-size:12.5px;color:var(--t3)}
+.pgn{display:flex;gap:4px}
+.pbtn{width:30px;height:30px;border-radius:7px;border:1px solid var(--b);background:var(--bg2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--t2);font-family:'DM Sans',sans-serif;font-weight:500;transition:all .12s}
+.pbtn:hover{border-color:var(--b2);color:var(--t)}
+.pbtn.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.pbtn:disabled{opacity:.4;cursor:default}
+
+/* MODAL */
+.ov{position:fixed;inset:0;background:rgba(26,24,20,.28);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.ov.open{opacity:1;pointer-events:all}
+.dp{width:680px;max-width:96vw;max-height:92vh;background:var(--s);border-radius:20px;box-shadow:var(--shlg);overflow:hidden;display:flex;flex-direction:column;transform:translateY(20px) scale(.98);transition:transform .2s}
+.ov.open .dp{transform:none}
+.dh{padding:18px 22px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:13px}
+.di{width:76px;height:56px;border-radius:10px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:30px;overflow:hidden;flex-shrink:0}
+.di img{width:100%;height:100%;object-fit:contain}
+.dt{flex:1}
+.dn2{font-family:'Syne',sans-serif;font-size:19px;font-weight:700}
+.dw{font-size:13px;color:var(--t3);margin-top:2px}
+.dc{width:35px;height:35px;border-radius:9px;border:1px solid var(--b);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t2);font-size:17px;transition:all .15s}
+.dc:hover{background:var(--bg3)}
+.db{padding:22px;overflow-y:auto;flex:1}
+.dg{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:18px}
+.dm{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;background:var(--bg);border-radius:10px;border:1px solid var(--b)}
+.dmn{font-size:13px;font-weight:600;color:var(--t2);display:flex;align-items:center;gap:6px}
+.dmp{font-size:15px;font-weight:700;color:var(--t)}
+.dmd{font-size:11.5px;font-weight:600;margin-top:1px}
+
+/* Chart */
+.ctitle{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--t2);margin-bottom:9px;letter-spacing:.3px;text-transform:uppercase}
+.chart-tabs{display:flex;gap:4px;margin-bottom:10px}
+.ctab{padding:4px 10px;border-radius:6px;border:1px solid var(--b);background:transparent;color:var(--t2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s}
+.ctab.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+canvas.cc{width:100%;height:130px;border-radius:10px;background:var(--bg);padding:8px;border:1px solid var(--b);display:block}
+
+/* Toast */
+.toast{position:fixed;bottom:22px;right:22px;background:var(--t);color:#fff;padding:9px 17px;border-radius:10px;font-size:13.5px;font-weight:500;transform:translateY(60px);opacity:0;transition:all .25s;z-index:300}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* Loading */
+.lo{position:fixed;inset:0;background:var(--bg2);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .4s}
+.lo.hidden{opacity:0;pointer-events:none}
+.sp{width:38px;height:38px;border:3px solid var(--b);border-top-color:var(--ac);border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ltext{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--t2)}
+
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px}
+</style>
+</head>
+<body>
+
+<div class="lo" id="lo">
+  <div class="sp"></div>
+  <div class="ltext">Подключение к серверу...</div>
+  <div style="font-size:13px;color:var(--t3)" id="lstatus">Ожидаем данные от парсера</div>
+</div>
+
+<header>
+  <div class="hi">
+    <a class="logo" href="#"><span class="logo-dot"></span>SkinPulse</a>
+    <nav class="hnav">
+      <button class="nb active">Таблица цен</button>
+      <button class="nb">Арбитраж</button>
+      <button class="nb">Закладки</button>
+    </nav>
+    <div class="hr">
+      <div class="live-b conn" id="wsb">
+        <span class="ldot" id="wsd"></span>
+        <span id="wsl">Подключение...</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+
+    <div class="sc">
+      <div class="stitle">Площадки</div>
+      <div class="mkt-list" id="mktList"></div>
+      <div style="margin-top:10px;display:flex;gap:5px">
+        <button class="tbtn" style="flex:1;justify-content:center;font-size:12px" onclick="selectAllMkts(true)">Все</button>
+        <button class="tbtn" style="flex:1;justify-content:center;font-size:12px" onclick="selectAllMkts(false)">Сброс</button>
+      </div>
+    </div>
+
+    <div class="sc">
+      <div class="stitle">Фильтры</div>
+      <div class="fg">
+        <span class="fl">Состояние</span>
+        <div class="chips" id="wearChips">
+          <span class="chip on" data-wear="">Все</span>
+          <span class="chip" data-wear="Factory New">FN</span>
+          <span class="chip" data-wear="Minimal Wear">MW</span>
+          <span class="chip" data-wear="Field-Tested">FT</span>
+          <span class="chip" data-wear="Well-Worn">WW</span>
+          <span class="chip" data-wear="Battle-Scarred">BS</span>
+        </div>
+      </div>
+      <div class="fg">
+        <span class="fl">Мин. прибыль (%)</span>
+        <select class="fsel" id="minProfitSel">
+          <option value="">Любая</option>
+          <option value="5">≥ 5%</option>
+          <option value="10">≥ 10%</option>
+          <option value="15">≥ 15%</option>
+          <option value="20">≥ 20%</option>
+          <option value="30">≥ 30%</option>
+        </select>
+      </div>
+      <div class="fg">
+        <span class="fl">Цена ($)</span>
+        <div style="display:flex;gap:5px">
+          <input class="fsel" type="number" id="minPr" placeholder="От" style="width:50%">
+          <input class="fsel" type="number" id="maxPr" placeholder="До" style="width:50%">
+        </div>
+      </div>
+      <div class="fg" style="margin-bottom:0">
+        <span class="fl">Сравнивать только если есть на:</span>
+        <div class="chips" id="reqChips">
+          <span class="chip on" data-req="any">Любых</span>
+          <span class="chip" data-req="2">2+ площадках</span>
+          <span class="chip" data-req="3">3+ площадках</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sc">
+      <div class="stitle">Сводка</div>
+      <div class="sr"><span class="sk">Всего скинов</span><span class="sv" id="sTotal">—</span></div>
+      <div class="sr"><span class="sk">Обновлено</span><span class="sv" id="sUpd">—</span></div>
+      <div class="sr"><span class="sk">Ср. прибыль</span><span class="sv up" id="sAvg">—</span></div>
+      <div class="sr"><span class="sk">Арбитраж ≥10%</span><span class="sv up" id="sArb">—</span></div>
+      <div class="sr"><span class="sk">Растёт</span><span class="sv up" id="sRise">—</span></div>
+      <div class="sr"><span class="sk">Падает</span><span class="sv dn" id="sFall">—</span></div>
+      <div class="sr"><span class="sk">Прокси</span><span class="sv" id="sProxy">—</span></div>
+      <div class="sr"><span class="sk">БД история</span><span class="sv" id="sDb">—</span></div>
+    </div>
+
+  </aside>
+
+  <main class="main">
+    <div class="tcards">
+      <div class="tc or"><div class="tclbl">Топ прибыль</div><div class="tcval" id="topProfit">—</div><div class="tcsub" id="topName">загрузка...</div></div>
+      <div class="tc gr"><div class="tclbl">Арбитраж ≥10%</div><div class="tcval" id="arbCnt">—</div><div class="tcsub">шт. прямо сейчас</div></div>
+      <div class="tc rd"><div class="tclbl">Упало за 24ч</div><div class="tcval" id="fallCnt">—</div><div class="tcsub">скинов</div></div>
+      <div class="tc gd"><div class="tclbl">Площадок активно</div><div class="tcval" id="mktCnt">—</div><div class="tcsub" id="mktNames">—</div></div>
+    </div>
+
+    <div class="tb">
+      <div class="sw">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input class="si" id="si" type="text" placeholder="Поиск скинов...">
+      </div>
+      <div class="tsep"></div>
+      <button class="tbtn on" id="sBtnP" onclick="sortBy('profit')">↑ По прибыли</button>
+      <button class="tbtn"    id="sBtnC" onclick="sortBy('change24')">% За 24ч</button>
+      <button class="tbtn"    id="sBtnM" onclick="sortBy('minPrice')">$ По цене</button>
+      <div class="tsep"></div>
+      <button class="tbtn" id="upBtn" onclick="toggleUp()">↑ Только рост</button>
+      <span class="rc" id="rc">—</span>
+    </div>
+
+    <div class="tw">
+      <div class="ts">
+        <table>
+          <thead id="thead"></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="tfoot">
+        <span class="pi" id="pi">—</span>
+        <div class="pgn" id="pgn"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Detail modal -->
+<div class="ov" id="ov" onclick="if(event.target===this)closeD()">
+  <div class="dp">
+    <div class="dh">
+      <div class="di" id="dImg"></div>
+      <div class="dt">
+        <div class="dn2" id="dName"></div>
+        <div class="dw" id="dWear"></div>
+      </div>
+      <button class="dc" onclick="closeD()">✕</button>
+    </div>
+    <div class="db">
+      <div style="display:flex;gap:18px;margin-bottom:18px;flex-wrap:wrap">
+        <div><div style="font-size:11px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:3px">Лучшая цена</div><div style="font-family:'Syne',sans-serif;font-size:27px;font-weight:700;color:var(--up)" id="dBest"></div></div>
+        <div><div style="font-size:11px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:3px">Прибыль</div><div style="font-family:'Syne',sans-serif;font-size:27px;font-weight:700;color:var(--ac)" id="dProfit"></div></div>
+        <div><div style="font-size:11px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:3px">За 24ч</div><div style="font-family:'Syne',sans-serif;font-size:27px;font-weight:700" id="dChange"></div></div>
+      </div>
+      <div class="ctitle">Цены по площадкам</div>
+      <div class="dg" id="dMkts"></div>
+      <div class="ctitle" style="margin-top:16px">История цены</div>
+      <div class="chart-tabs" id="chartTabs">
+        <button class="ctab on" onclick="loadChart(7)">7д</button>
+        <button class="ctab" onclick="loadChart(14)">14д</button>
+        <button class="ctab" onclick="loadChart(30)">30д</button>
+      </div>
+      <canvas class="cc" id="cc" width="620" height="130"></canvas>
+      <div style="margin-top:8px;font-size:11.5px;color:var(--t3)" id="chartNote"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// Автоматически определяем URL — работает и локально и на сервере
+const IS_SECURE = location.protocol === 'https:';
+const API = location.hostname === 'localhost'
+  ? 'http://localhost:3000/api'
+  : location.origin + '/api';
+const WS = location.hostname === 'localhost'
+  ? 'ws://localhost:3000'
+  : (IS_SECURE ? 'wss://' : 'ws://') + location.host;
+
+// ── Market config ─────────────────────────────────────────────────────────────
+const MKTS = [
+  { id:'steam',    label:'Steam',    color:'#1b2838' },
+  { id:'waxpeer',  label:'Waxpeer',  color:'#7c3aed' },
+  { id:'dmarket',  label:'DMarket',  color:'#0ea5e9' },
+  { id:'skinport', label:'Skinport', color:'#10b981' },
+  { id:'buff163',  label:'Buff163',  color:'#e8530a' },
+  { id:'csmoney',  label:'CS.Money', color:'#f59e0b' },
+];
+
+// Какие площадки показываем в таблице (чекбоксы)
+const activeMkts = new Set(['steam','waxpeer','dmarket','skinport','buff163','csmoney']);
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let allSkins = [], filtered = [];
+let page = 1, PER = 30;
+let sortF = 'profit', sortA = false, onlyUp = false;
+let filterWear = '', filterMinP = '', filterMaxP = '', filterMinProfit = '', filterReq = 'any';
+let bookmarks = new Set();
+let ws, currentDetailSkin = null;
+let sourceCounts = {};
+
+// ── Render market checkboxes ──────────────────────────────────────────────────
+function renderMktList() {
+  const el = document.getElementById('mktList');
+  el.innerHTML = '';
+  MKTS.forEach(m => {
+    const row = document.createElement('div');
+    row.className = 'mkt-row';
+    const cnt = sourceCounts[m.id] || 0;
+    const isOn = activeMkts.has(m.id);
+    row.innerHTML = `
+      <div class="mkt-dot" style="background:${m.color}"></div>
+      <span class="mkt-name">${m.label}</span>
+      <span class="mkt-count">${cnt ? cnt.toLocaleString() : '—'}</span>
+      <div class="mkt-cb ${isOn?'on':''}" id="cb-${m.id}"></div>`;
+    row.onclick = () => toggleMkt(m.id);
+    el.appendChild(row);
+  });
+}
+
+function toggleMkt(id) {
+  if (activeMkts.has(id)) {
+    if (activeMkts.size > 1) activeMkts.delete(id);
+  } else {
+    activeMkts.add(id);
+  }
+  renderMktList();
+  renderTable();
+}
+function selectAllMkts(all) {
+  if (all) MKTS.forEach(m => activeMkts.add(m.id));
+  else { activeMkts.clear(); activeMkts.add(MKTS[0].id); }
+  renderMktList();
+  renderTable();
+}
+
+// ── Render thead based on active markets ──────────────────────────────────────
+function renderThead() {
+  const visibleMkts = MKTS.filter(m => activeMkts.has(m.id));
+  document.getElementById('thead').innerHTML = `<tr>
+    <th style="width:30px"></th>
+    <th>Скин</th>
+    ${visibleMkts.map(m => `<th class="r" style="color:${m.color}">${m.label}</th>`).join('')}
+    <th class="r">Прибыль</th>
+    <th class="r">24ч</th>
+    <th class="c">★</th>
+  </tr>`;
+}
+
+// ── WebSocket ─────────────────────────────────────────────────────────────────
+function connectWS() {
+  ws = new WebSocket(WS);
+  ws.onopen = () => setWS('ok');
+  ws.onmessage = e => {
+    const msg = JSON.parse(e.data);
+    if (['init','update','steam_update'].includes(msg.type)) {
+      allSkins = msg.data;
+      applyFilters();
+      updateStats();
+      hideLoading();
+    }
+  };
+  ws.onclose = () => { setWS('err'); setTimeout(connectWS, 5000); };
+  ws.onerror = () => { setWS('err'); loadRest(); };
+}
+
+function setWS(s) {
+  const b = document.getElementById('wsb');
+  const d = document.getElementById('wsd');
+  const l = document.getElementById('wsl');
+  b.className = 'live-b ' + s;
+  d.className = 'ldot ' + s;
+  l.textContent = s==='ok' ? 'Live' : s==='conn' ? 'Подключение...' : 'Переподключение...';
+}
+
+async function loadRest() {
+  try {
+    document.getElementById('lstatus').textContent = 'Загрузка через REST...';
+    const r = await fetch(`${API}/skins?limit=500`);
+    const j = await r.json();
+    allSkins = j.items || [];
+    applyFilters(); updateStats(); hideLoading();
+  } catch (_) {
+    document.getElementById('lstatus').textContent = 'Ошибка: запусти npm start';
+  }
+}
+
+async function updateStats() {
+  try {
+    const j = await fetch(`${API}/stats`).then(r => r.json());
+    document.getElementById('sTotal').textContent  = (j.total||0).toLocaleString();
+    document.getElementById('sRise').textContent   = j.rising  || '—';
+    document.getElementById('sFall').textContent   = j.falling || '—';
+    document.getElementById('sAvg').textContent    = (j.avgProfit||0) + '%';
+    document.getElementById('sArb').textContent    = j.topArb  || '—';
+    document.getElementById('sProxy').textContent  = j.proxies?.total ? j.proxies.total + ' шт.' : 'Нет';
+    document.getElementById('sDb').textContent     = j.dbConnected ? '✓ Подключена' : '✗ Нет';
+    if (j.lastUpdate) document.getElementById('sUpd').textContent = new Date(j.lastUpdate).toLocaleTimeString('ru');
+    sourceCounts = j.sourceCounts || {};
+    renderMktList();
+
+    document.getElementById('mktCnt').textContent  = activeMkts.size;
+    document.getElementById('mktNames').textContent = [...activeMkts].map(id => MKTS.find(m=>m.id===id)?.label).filter(Boolean).join(' · ');
+    document.getElementById('fallCnt').textContent = j.falling || '—';
+  } catch(_) {}
+}
+
+function hideLoading() {
+  const el = document.getElementById('lo');
+  el.classList.add('hidden');
+  setTimeout(() => el.style.display='none', 400);
+}
+
+// ── Filters ───────────────────────────────────────────────────────────────────
+function applyFilters() {
+  const q = document.getElementById('si').value.toLowerCase();
+  filterWear      = document.querySelector('#wearChips .chip.on')?.dataset.wear || '';
+  filterMinProfit = document.getElementById('minProfitSel').value;
+  filterMinP      = document.getElementById('minPr').value;
+  filterMaxP      = document.getElementById('maxPr').value;
+  filterReq       = document.querySelector('#reqChips .chip.on')?.dataset.req || 'any';
+  const reqCount  = parseInt(filterReq) || 0;
+
+  filtered = allSkins.filter(s => {
+    if (q && !s.name.toLowerCase().includes(q)) return false;
+    if (filterWear && s.wear !== filterWear) return false;
+    if (filterMinProfit && s.profit < parseFloat(filterMinProfit)) return false;
+    if (filterMinP && s.minPrice < parseFloat(filterMinP)) return false;
+    if (filterMaxP && s.maxPrice > parseFloat(filterMaxP)) return false;
+    if (onlyUp && s.change24 <= 0) return false;
+    // Фильтр по числу доступных площадок
+    if (reqCount >= 2) {
+      const cnt = Object.values(s.prices||{}).filter(p=>p!=null).length;
+      if (cnt < reqCount) return false;
+    }
+    // Показываем только скины у которых есть цена хотя бы на одной АКТИВНОЙ площадке
+    const hasAny = MKTS.filter(m=>activeMkts.has(m.id)).some(m => s.prices?.[m.id] != null);
+    if (!hasAny) return false;
+    return true;
+  });
+
+  filtered.sort((a,b) => {
+    const va = a[sortF] ?? 0, vb = b[sortF] ?? 0;
+    return sortA ? va-vb : vb-va;
+  });
+
+  if (filtered.length) {
+    const top = filtered[0];
+    document.getElementById('topProfit').textContent = '+' + top.profit + '%';
+    document.getElementById('topName').textContent   = top.name.split(' | ').slice(1).join(' | ') || top.name;
+    document.getElementById('arbCnt').textContent    = filtered.filter(s=>s.profit>=10).length;
+    document.getElementById('mktCnt').textContent    = activeMkts.size;
+    document.getElementById('mktNames').textContent  = [...activeMkts].map(id=>MKTS.find(m=>m.id===id)?.label).filter(Boolean).join(' · ');
+  }
+
+  page = 1;
+  renderThead();
+  renderTable();
+  document.getElementById('rc').textContent = `Показано ${filtered.length.toLocaleString()} скинов`;
+}
+
+document.getElementById('si').addEventListener('input', applyFilters);
+
+function sortBy(f) {
+  if (sortF===f) sortA=!sortA; else { sortF=f; sortA=false; }
+  ['P','C','M'].forEach(k => document.getElementById('sBtn'+k).classList.remove('on'));
+  const map = {profit:'P',change24:'C',minPrice:'M'};
+  if (map[f]) document.getElementById('sBtn'+map[f]).classList.add('on');
+  applyFilters();
+}
+
+function toggleUp() {
+  onlyUp = !onlyUp;
+  document.getElementById('upBtn').classList.toggle('on', onlyUp);
+  applyFilters();
+}
+
+// Wear chips
+document.getElementById('wearChips').querySelectorAll('.chip').forEach(c => {
+  c.onclick = () => { document.querySelectorAll('#wearChips .chip').forEach(x=>x.classList.remove('on')); c.classList.add('on'); applyFilters(); };
+});
+// Req chips
+document.getElementById('reqChips').querySelectorAll('.chip').forEach(c => {
+  c.onclick = () => { document.querySelectorAll('#reqChips .chip').forEach(x=>x.classList.remove('on')); c.classList.add('on'); applyFilters(); };
+});
+document.getElementById('minProfitSel').onchange = applyFilters;
+
+// ── Render table ──────────────────────────────────────────────────────────────
+const EMOJIS = ['🔫','🔪','⭐','💎','🟠','🔵','🟣','🔴','🎯','🏆'];
+const RARITY = { Covert:'#eb4b4b', Classified:'#d32ce6', Restricted:'#8847ff', 'Mil-Spec':'#4b69ff', Gold:'#c9922a', Unknown:'#888' };
+
+function emo(name) { return EMOJIS[name.charCodeAt(0) % EMOJIS.length]; }
+
+function renderTable() {
+  const total = filtered.length;
+  const pages = Math.max(1, Math.ceil(total/PER));
+  const slice = filtered.slice((page-1)*PER, page*PER);
+  const visibleMkts = MKTS.filter(m => activeMkts.has(m.id));
+
+  document.getElementById('pi').textContent = `Страница ${page} из ${pages}`;
+
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+
+  slice.forEach((skin, i) => {
+    const tr = document.createElement('tr');
+    const profCls  = skin.profit >= 10 ? 'up' : 'neu';
+    const chgCls   = skin.change24 > 0 ? 'up' : skin.change24 < 0 ? 'dn' : 'neu';
+    const chgSign  = skin.change24 > 0 ? '+' : '';
+    const rColor   = RARITY[skin.rarity?.name] || '#888';
+    const isBm     = bookmarks.has(skin.name);
+
+    // Определяем лучшую / худшую цену среди видимых площадок
+    const visiblePrices = visibleMkts.map(m => skin.prices?.[m.id]).filter(p => p != null);
+    const minVis = visiblePrices.length ? Math.min(...visiblePrices) : null;
+    const maxVis = visiblePrices.length ? Math.max(...visiblePrices) : null;
+
+    const priceCells = visibleMkts.map(m => {
+      const p = skin.prices?.[m.id];
+      if (p == null) return `<td class="r" style="color:var(--t3)">—</td>`;
+      const isBest  = minVis !== null && p === minVis && visiblePrices.filter(x=>x===p).length < visiblePrices.length;
+      const isWorst = maxVis !== null && p === maxVis && visiblePrices.filter(x=>x===p).length < visiblePrices.length;
+      const cls = isBest ? 'pr best' : isWorst ? 'pr worst' : 'pr';
+      return `<td class="r ${cls}">${p.toFixed(2)}</td>`;
+    }).join('');
+
+    const nameParts = skin.name.split(' | ');
+    const nameLine  = nameParts.length > 1
+      ? `<span style="color:var(--t3)">${nameParts[0]}</span> | ${nameParts.slice(1).join(' | ')}`
+      : skin.name;
+
+    tr.innerHTML = `
+      <td class="c"><button class="bm ${isBm?'on':''}" onclick="toggleBm(event,'${encodeURIComponent(skin.name)}')">★</button></td>
+      <td onclick="openD(${(page-1)*PER+i})">
+        <div class="skc">
+          <div class="rdot" style="background:${rColor}"></div>
+          <div class="ski">${emo(skin.name)}</div>
+          <div>
+            <div class="skname">${nameLine}</div>
+            <div class="skwear">${skin.wear||''}</div>
+          </div>
+        </div>
+      </td>
+      ${priceCells}
+      <td class="r" onclick="openD(${(page-1)*PER+i})"><span class="badge ${profCls}">+${skin.profit}%</span></td>
+      <td class="r" onclick="openD(${(page-1)*PER+i})"><span class="badge ${chgCls}">${chgSign}${skin.change24}%</span></td>
+      <td class="c"><button class="bm ${isBm?'on':''}" onclick="toggleBm(event,'${encodeURIComponent(skin.name)}')">★</button></td>`;
+    tbody.appendChild(tr);
+  });
+
+  renderPgn(pages);
+}
+
+function renderPgn(total) {
+  const pg = document.getElementById('pgn');
+  pg.innerHTML = '';
+  const add = (lbl, p, on, dis) => {
+    const b = document.createElement('button');
+    b.className = 'pbtn' + (on?' on':'');
+    b.textContent = lbl; b.disabled = !!dis;
+    if (!dis) b.onclick = () => { page=p; renderTable(); };
+    pg.appendChild(b);
+  };
+  add('‹', page-1, false, page===1);
+  const s = Math.max(1,page-2), e = Math.min(total,s+4);
+  for (let p=s; p<=e; p++) add(p, p, p===page);
+  add('›', page+1, false, page===total);
+}
+
+// ── Detail modal ──────────────────────────────────────────────────────────────
+function openD(idx) {
+  const s = filtered[idx];
+  if (!s) return;
+  currentDetailSkin = s;
+  document.getElementById('dImg').textContent  = emo(s.name);
+  document.getElementById('dName').textContent = s.name;
+  document.getElementById('dWear').textContent = (s.wear||'') + (s.rarity?.name ? ' · '+s.rarity.name : '');
+  document.getElementById('dBest').textContent   = '$' + (s.minPrice||0).toFixed(2);
+  document.getElementById('dProfit').textContent = '+' + s.profit + '%';
+  const chEl = document.getElementById('dChange');
+  chEl.textContent  = (s.change24>0?'+':'') + s.change24 + '%';
+  chEl.style.color  = s.change24>0 ? 'var(--up)' : s.change24<0 ? 'var(--dn)' : 'var(--neu)';
+
+  const mg = document.getElementById('dMkts');
+  mg.innerHTML = MKTS.map(m => {
+    const p = s.prices?.[m.id];
+    if (!p) return '';
+    const basePr = s.prices.steam || s.minPrice;
+    const diff   = basePr ? (((p/basePr)-1)*100).toFixed(1) : null;
+    const dcls   = diff > 0 ? 'var(--up)' : 'var(--dn)';
+    return `<div class="dm">
+      <div class="dmn"><span style="width:8px;height:8px;border-radius:50%;background:${m.color};display:inline-block"></span>${m.label}</div>
+      <div>
+        <div class="dmp">$${p.toFixed(2)}</div>
+        ${diff!==null ? `<div class="dmd" style="color:${dcls}">${diff>0?'+':''}${diff}%</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('ov').classList.add('open');
+  loadChart(7);
+}
+function closeD() { document.getElementById('ov').classList.remove('open'); currentDetailSkin=null; }
+
+// ── Price history chart ───────────────────────────────────────────────────────
+document.getElementById('chartTabs').querySelectorAll('.ctab').forEach(t => {
+  t.onclick = () => {
+    document.querySelectorAll('.ctab').forEach(x=>x.classList.remove('on'));
+    t.classList.add('on');
+  };
+});
+
+async function loadChart(days) {
+  const s = currentDetailSkin;
+  if (!s) return;
+
+  const canvas = document.getElementById('cc');
+  const ctx = canvas.getContext('2d');
+  const note = document.getElementById('chartNote');
+
+  // Пробуем загрузить историю из БД
+  let history = [];
+  try {
+    const r = await fetch(`${API}/history?name=${encodeURIComponent(s.name)}&days=${days}`);
+    const j = await r.json();
+    if (j.rows && j.rows.length > 0) {
+      history = j.rows;
+      note.textContent = '';
+    } else {
+      note.textContent = 'История накапливается — данные появятся после нескольких часов работы сервера';
+    }
+  } catch(_) {
+    note.textContent = 'История недоступна (PostgreSQL не подключён)';
+  }
+
+  if (!history.length) {
+    // Рисуем заглушку
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--t3').trim();
+    ctx.font = '13px DM Sans, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('История ещё накапливается...', canvas.width/2, canvas.height/2);
+    return;
+  }
+
+  // Группируем по источникам
+  const bySource = {};
+  for (const row of history) {
+    if (!bySource[row.source]) bySource[row.source] = [];
+    bySource[row.source].push({ t: new Date(row.hour), p: parseFloat(row.avg_price) });
+  }
+
+  drawMultiLineChart(ctx, canvas, bySource);
+}
+
+function drawMultiLineChart(ctx, canvas, bySource) {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+  const pad = {t:10,r:14,b:22,l:44};
+  const cw = W-pad.l-pad.r, ch = H-pad.t-pad.b;
+
+  // Собираем все точки для масштаба
+  const allPrices = Object.values(bySource).flat().map(p=>p.p);
+  if (!allPrices.length) return;
+  const minV = Math.min(...allPrices) * 0.98;
+  const maxV = Math.max(...allPrices) * 1.02;
+
+  // Grid
+  ctx.strokeStyle = '#e8e4dc'; ctx.lineWidth = 0.5;
+  for (let i=0; i<=4; i++) {
+    const y = pad.t + i*(ch/4);
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+cw,y); ctx.stroke();
+    const val = maxV - (i/4)*(maxV-minV);
+    ctx.fillStyle = '#9c968e'; ctx.font = '10px DM Sans,sans-serif';
+    ctx.textAlign = 'right'; ctx.fillText('$'+val.toFixed(0), pad.l-4, y+4);
+  }
+
+  const COLORS = { steam:'#1b2838', waxpeer:'#7c3aed', dmarket:'#0ea5e9', skinport:'#10b981', buff163:'#e8530a', csmoney:'#f59e0b' };
+
+  // Рисуем линии по каждому источнику
+  for (const [src, points] of Object.entries(bySource)) {
+    if (!points.length) continue;
+    const times = points.map(p => p.t.getTime());
+    const minT  = Math.min(...times), maxT = Math.max(...times);
+    const xs = t => pad.l + ((t-minT)/(maxT-minT||1))*cw;
+    const ys = v => pad.t + ch - ((v-minV)/(maxV-minV||1))*ch;
+
+    ctx.beginPath();
+    points.forEach((p,i) => { if(i===0) ctx.moveTo(xs(p.t.getTime()),ys(p.p)); else ctx.lineTo(xs(p.t.getTime()),ys(p.p)); });
+    ctx.strokeStyle = COLORS[src] || '#888';
+    ctx.lineWidth = 1.5; ctx.lineJoin = 'round'; ctx.stroke();
+  }
+}
+
+// ── Bookmarks ─────────────────────────────────────────────────────────────────
+function toggleBm(e, name) {
+  e.stopPropagation();
+  const n = decodeURIComponent(name);
+  if (bookmarks.has(n)) { bookmarks.delete(n); toast('Удалено из закладок'); }
+  else { bookmarks.add(n); toast('★ Добавлено в закладки'); }
+  renderTable();
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ── Nav ───────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.nb').forEach(b => {
+  b.onclick = () => { document.querySelectorAll('.nb').forEach(x=>x.classList.remove('active')); b.classList.add('active'); };
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+renderMktList();
+renderThead();
+connectWS();
+</script>
+</body>
+</html>
