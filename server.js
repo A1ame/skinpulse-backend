@@ -72,11 +72,21 @@ server.listen(PORT, async () => {
     });
   }
 
+  // Самопинг — не даём Render засыпать (сервис засыпает после 15 мин неактивности)
   if (process.env.RENDER_EXTERNAL_URL) {
-  setInterval(() => {
-    require('https').get(process.env.RENDER_EXTERNAL_URL + '/health').on('error', ()=>{});
-  }, 10 * 60 * 1000);
-}
+    setInterval(() => {
+      require('https').get(process.env.RENDER_EXTERNAL_URL + '/health').on('error', () => {});
+    }, 10 * 60 * 1000);
+    console.log('[Keepalive] Самопинг включён:', process.env.RENDER_EXTERNAL_URL);
+  }
+
+  // Самопинг — не даём Render засыпать
+  if (process.env.RENDER_EXTERNAL_URL) {
+    setInterval(() => {
+      require('https').get(process.env.RENDER_EXTERNAL_URL + '/health').on('error', () => {});
+    }, 10 * 60 * 1000);
+    console.log('[Keepalive] Самопинг включён:', process.env.RENDER_EXTERNAL_URL);
+  }
 
   // Первый сбор данных
   await runUpdate();
