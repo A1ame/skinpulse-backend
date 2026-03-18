@@ -72,6 +72,12 @@ server.listen(PORT, async () => {
     });
   }
 
+  if (process.env.RENDER_EXTERNAL_URL) {
+  setInterval(() => {
+    require('https').get(process.env.RENDER_EXTERNAL_URL + '/health').on('error', ()=>{});
+  }, 10 * 60 * 1000);
+}
+
   // Первый сбор данных
   await runUpdate();
 
